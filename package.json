@@ -1,0 +1,38 @@
+{
+  "name": "simple-pool-mysql",
+  "version": "0.1.0",
+  "description": "Multi-configuration, simple mysql connection pool package",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --full-trace",
+    "lint": "eslint .",
+    "ci": "npm run lint && npm run cov",
+    "cov": "nyc --reporter=text mocha --full-trace"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uccu/simple-pool-mysql.git"
+  },
+  "keywords": [
+    "traverse",
+    "file",
+    "directory",
+    "object"
+  ],
+  "author": "cat@4moe.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/uccu/simple-pool-mysql/issues"
+  },
+  "homepage": "https://github.com/uccu/simple-pool-mysql#readme",
+  "devDependencies": {
+    "eslint": "^7.6.0",
+    "mocha": "^7.2.0",
+    "nyc": "^15.1.0",
+    "power-assert": "^1.6.1"
+  },
+  "dependencies": {
+    "mysql": "^2.18.1",
+    "pify": "^5.0.0"
+  }
+}
