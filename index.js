@@ -2,7 +2,7 @@
 
 const assert = require('power-assert');
 const mysql = require('mysql');
-
+const util = require('util');
 
 
 
@@ -10,16 +10,26 @@ class Connection {
 
     /**
      * this is a constructor
-     * @param {Promise<import('mysql').PoolConnection>} connection 
+     * @param {import('mysql').Pool} pool 
      */
-    constructor(connection) {
-        this._connection = connection;
+    constructor(pool) {
+        this.pool = pool;
         this.connection = null;
         this.isTransaction = false;
     }
 
+    /**
+     * @return {Promise<import('mysql').PoolConnection>} connection
+     */
     async getConnection() {
-        if (!this.connection) this.connection = await this._connection;
+        if (!this.connection) {
+            this.connection = await util
+                .promisify(this.pool.getConnection)
+                .call(this.pool)
+                .catch(err => {
+                    throw err;
+                });
+        }
         return this.connection;
     }
 
@@ -30,51 +40,42 @@ class Connection {
      * @return {Promise<any>} result
      */
     query(sql, ...values) {
-        return new Promise(async (r, j) => {
-            await this.getConnection();
-            this.connection.query(sql, values, (err, results) => {
-                if (!this.isTransaction) this.connection.release();
-                if (err) j(err); else r(results);
-            });
+        return this.getConnection().then(conn => util.promisify(conn.query).call(conn, sql, values)).then((result) => {
+            if (!this.isTransaction) this.release();
+            return result;
         });
     }
 
     start() {
         this.isTransaction = true;
-        return new Promise(async (r, j) => {
-            await this.getConnection();
-            this.connection.beginTransaction((err) => {
-                if (err) j(err); else r(true);
-            });
-        });
+        return this.getConnection().then(conn => util.promisify(conn.beginTransaction).call(conn).catch(e => {
+            conn.release(); throw e;
+        }));
     }
 
     commit() {
-        return new Promise(async (r, j) => {
-            await this.getConnection();
-            this.connection.commit((err) => {
-                if (err) {
-                    this.rollback().then(() => {
-                        j(err);
-                    });
-                } else {
-                    this.connection.release();
-                    r(true);
-                }
-            });
+
+        return this.getConnection().then(conn => util.promisify(conn.commit).call(conn).catch(e => {
+            this.rollback(); throw e;
+        })).then((result) => {
+            this.release();
+            return result;
         });
     }
 
     rollback() {
-        return new Promise(async (r, j) => {
-            await this.getConnection();
-            this.connection.rollback((err) => {
-                if (err) j(err); else {
-                    this.connection.release();
-                    r(true);
-                }
-            });
+        return this.getConnection().then(conn => util.promisify(conn.rollback).call(conn).catch(e => {
+            this.release(); throw e;
+        })).then((result) => {
+            this.release();
+            return result;
         });
+    }
+
+    release() {
+        this.connection.release();
+        this.connection = null;
+        this.isTransaction = false;
     }
 
 }
@@ -108,20 +109,6 @@ class Mysql {
         return pool;
     }
 
-    /**
-     * 
-     * @param {string} poolName pool name
-     * @return {Promise<import('mysql').PoolConnection>} PoolConnection
-     */
-    _getConnection(poolName = 'default') {
-        return new Promise((r, j) => {
-            this.getPool(poolName).getConnection(function(err, connection) {
-                if (err) { j(err); return }
-                r(connection);
-            });
-        });
-    }
-
 
     /**
      * 
@@ -129,8 +116,8 @@ class Mysql {
      * @return {Connection} connection
      */
     getConnection(poolName = 'default') {
-        const connection = this._getConnection(poolName);
-        return new Connection(connection);
+        const pool = this.getPool(poolName);
+        return new Connection(pool);
     }
 
 
@@ -142,25 +129,19 @@ class Mysql {
      * @return {Promise<any>} result
      */
     query(sql, values = [], poolName = 'default') {
-        return new Promise((r, j) => {
-            this.getPool(poolName).query(sql, values, (error, results) => {
-                if (error) j(error); else r(results);
-            });
-        });
+        const pool = this.getPool(poolName);
+        return util.promisify(pool.query).call(pool, sql, values);
     }
 
     /**
      * close the pool
      * @param {string} poolName pool
-     * @return {Promise<boolean>} result
+     * @return {Promise<any>} result
      */
     end(poolName = 'default') {
-        return new Promise((r) => {
-            this.getPool(poolName).end(() => {
-                this.pools.delete(poolName);
-                r(true);
-            });
-        });
+        const pool = this.getPool(poolName);
+        this.pools.delete(poolName);
+        return util.promisify(pool.end).call(pool);
     }
 
 }

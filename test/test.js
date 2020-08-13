@@ -9,17 +9,18 @@ describe('Global', function() {
     it('transaction', async function() {
 
         const mysql = new Mysql({
-            default: { host: '192.168.6.188', user: 'cat', password: '123', database: 'videodb' }
+            default: { host: 'localhost', user: 'root', password: 'root', database: 'test' }
         });
         // @ts-ignore
 
         const con = mysql.getConnection()
 
-        await con.start();
-        const { insertId: id } = await con.query('INSERT INTO tb_tag set name =1');
-        await con.query('INSERT INTO tb_tag set name =?', id);
-        await con.commit();
-        mysql.end();
+        // await con.start();
+        const { insertId: id } = await con.query('INSERT INTO config set name =1');
+        // await con.rollback();
+        await con.query('INSERT INTO config set name =?', id);
+        // await con.commit();
+        // mysql.end();
 
     });
 
