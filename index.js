@@ -20,6 +20,7 @@ class Connection {
 
     async getConnection() {
         if (!this.connection) this.connection = await this._connection;
+        return this.connection;
     }
 
     /**
@@ -32,7 +33,7 @@ class Connection {
         return new Promise(async (r, j) => {
             await this.getConnection();
             this.connection.query(sql, values, (err, results) => {
-                this.connection.release();
+                if (!this.isTransaction) this.connection.release();
                 if (err) j(err); else r(results);
             });
         });
@@ -56,7 +57,10 @@ class Connection {
                     this.rollback().then(() => {
                         j(err);
                     });
-                } else r(true);
+                } else {
+                    this.connection.release();
+                    r(true);
+                }
             });
         });
     }
