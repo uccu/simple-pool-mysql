@@ -1,6 +1,5 @@
 'use strict';
 
-const assert = require('power-assert');
 const mysql = require('mysql');
 const util = require('util');
 
@@ -103,7 +102,9 @@ class Mysql {
         if (pool) {
             return pool;
         }
-        assert(this.options[poolName], 'can not get "' + poolName + '" pool config!');
+        if (!this.options[poolName]) {
+            throw new TypeError('can not get "' + poolName + '" pool config!');
+        }
         pool = mysql.createPool(this.options[poolName]);
         this.pools.set(poolName, pool);
         return pool;

@@ -1,6 +1,6 @@
 {
   "name": "simple-pool-mysql",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Multi-configuration, simple mysql connection pool package",
   "main": "index.js",
   "scripts": {
