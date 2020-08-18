@@ -40,7 +40,6 @@ class Connection {
      */
     query(sql, ...values) {
         return this.getConnection().then(conn => util.promisify(conn.query).call(conn, sql, values)).then((result) => {
-            if (!this.isTransaction) this.release();
             return result;
         });
     }
