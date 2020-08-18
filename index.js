@@ -35,10 +35,10 @@ class Connection {
     /**
      * query
      * @param {string} sql sql
-     * @param  {...any} values sql values
+     * @param  {any} values sql values
      * @return {Promise<any>} result
      */
-    query(sql, ...values) {
+    query(sql, values) {
         return this.getConnection().then(conn => util.promisify(conn.query).call(conn, sql, values)).then((result) => {
             return result;
         });
